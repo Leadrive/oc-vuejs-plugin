@@ -17,29 +17,34 @@ class Plugin extends PluginBase
 
     public function boot()
     {
-        //page.beforeDisplay
-        /*
-        \Event::listen('page.beforeDisplay', function($url, $page) {
-            dd('111');
-            if (\Request::ajax()) {
-                $page->layout = null;
-                dd($page);
-                return $page;
-            }
-        });
-        */
-
         \Event::listen('cms.page.display', function($controller, $url, $page) {
+            //check if page requested by ajax and no handler
             if (
                 \Request::ajax() &&
                 $controller->getAjaxHandler() === null
             ) {
-                if ($content = $controller->renderPage()) {
-                    return $content;
+                //dd($controller);
+                $assets = $controller->getAssetPaths();
+                $content = $controller->renderPage() ?: '<!-- No content -->';
+                $vueComponents = [];
+                foreach ($page->components as $component) {
+                    if (method_exists($component, 'vueComponents')) {
+
+                        //dd($component->getPath());
+                        $vueComponents_chunk = $component->vueComponents();
+                        foreach ($vueComponents_chunk as $vcName => $vcOptions) {
+                            $vueComponents_chunk[$vcName]['code'] = file_get_contents($component->getPath()."/".$vcOptions['file']);
+                        }
+
+                        $vueComponents = array_merge($vueComponents, $vueComponents_chunk);
+                    }
                 }
 
-                // If we don't return something, this will cause an infinite loop
-                return '<!-- No content -->';
+                return [
+                    'template' => $content,
+                    'assets'  => $assets,
+                    'components' => $vueComponents,
+                ];
             }
         });
     }

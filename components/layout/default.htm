@@ -1,4 +1,124 @@
-<script src="{{ [
+<script src=" {{ [
     '$/terne/vuejs/assets/vendor/vue/vue.js',
     '$/terne/vuejs/assets/vendor/vue/vue-router.js',
-]|theme }}"></script>
+    '$/terne/vuejs/assets/vendor/vue/vue-resource.js',
+    ]|theme }}">
+</script>
+
+<script>
+
+    Vue.use(VueRouter);
+    Vue.use(VueResource);
+
+    var App = Vue.extend({});
+
+    var Router = new VueRouter({
+        linkActiveClass: 'active',
+        hashbang: false,
+    });
+
+    Router.redirect({
+      '*': '/404'
+    })
+
+    var routerMap = {
+        '/': {
+            component: {}
+        },
+    };
+
+    {% for page in pages %}
+        {% if page.url != "/" %}
+            Router.on("{{page.url}}", {
+                component: getPageComponent("{{page.url}}"),
+            });
+        {% endif %}
+    {% endfor %}
+        /*
+        routerMap[{{page.url}}] = {
+            component: getPageComponent(url),
+        };
+        */
+        //routeConfig.mapPage('{{ page.baseFileName }}', '{{ page.url }}', '{{ page.baseFilename|page({}, false) }}')
+
+    //fix oc ajax framework request url
+    Router.beforeEach( function (transition) {
+        var path = transition.to.path;
+
+        if (window.jQuery) {
+            $.ajaxSetup({
+              url: path
+            });
+        }
+
+        transition.next();
+    });
+
+    Router.map(routerMap);
+    Router.start(App, '#app');
+
+    //add showing oc ajax preloader for vue ajax requests
+    if (window.jQuery) {
+        Vue.http.interceptors.push({
+            request: function (request) {
+                $.oc.stripeLoadIndicator.show();
+                return request;
+            },
+            response: function (response) {
+                $.oc.stripeLoadIndicator.hide();
+                return response;
+            }
+        });
+    }
+
+    function getBaseFileName(path) {
+        return path.replace(/^.*[\\\/]/, '');
+    }
+
+    function removeExtensions(filename) {
+        return filename.replace(/\.[^/]+$/, '');
+    }
+
+    function camelToDash(str) {
+        return str.replace(/\W+/g, '-')
+                  .replace(/([a-z\d])([A-Z])/g, '$1-$2')
+                  .toLowerCase();
+    }
+
+    function getPageComponent(url) {
+        return function(resolve, reject) {
+            Vue.http.get(url, function(data, status, request) {
+                //add page scripts
+                data.assets.js.forEach(function(item, i, arr) {
+                    var s = document.createElement("script");
+                    s.type = "text/javascript";
+                    s.src = item;
+                    (document.getElementsByTagName("head")[0] || document.documentElement ).appendChild(s);
+                });
+
+                //all page's vue components
+                var components = {};
+                for (var compName in data.components) {
+                    var compCode = data.components[compName].code;
+                    eval(compCode);
+                    if (!data.components[compName].tag) {
+                        var compTag = camelToDash(compName);
+                    } else {
+                        var compTag = data.components[compName].tag;
+                    }
+                    //var Component = eval(compName);
+                    components[compTag] = eval(compName);
+                    //console.log(compTag, compName);
+                }
+
+                //return complete vue component
+                resolve({
+                    template: data.template,
+                    //components: components,
+                    components: components,
+                });
+            });
+        }
+    };
+
+</script>
