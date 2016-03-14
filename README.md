@@ -1,6 +1,12 @@
 # Vue.js Plugin
 Tools useful for creating websites with Vue.js and OctoberCMS. Inspired by AngularJS Plugin by “Responsiv”.
 
+## Installation
+
+- Create /plugins/terne/vuejs folder
+- Extract source code in created folder
+- run command `php artisan plugin:install Terne.Vuejs`
+
 ## High level design consideration
 Vue.js is a library for building interactive web interfaces. It provides data-reactive components with a simple and flexible API.
 
