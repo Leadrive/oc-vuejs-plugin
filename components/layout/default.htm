@@ -87,26 +87,27 @@ $(document).ready(function() {
 
             return function(resolve, reject) {
                 //request page data (template, assets, vue components)
-                $.get(url, function(data, status, request) {
-
-                    //download and execute javascripts
-                    $.getMultiScripts(data.assets.js).done(function() {
-                        var components = parseComponentsList(data.components);
-                        //return complete vue component
-                        resolve({
-                            template: data.template,
-                            components: components,
+                $.ajax(url, {
+                    cache: false,
+                    success: function(data, status, request) {
+                        //download and execute javascripts
+                        $.getMultiScripts(data.assets.js).done(function() {
+                            var components = parseComponentsList(data.components);
+                            //return complete vue component
+                            resolve({
+                                template: data.template,
+                                components: components,
+                            });
                         });
-                    });
-                    //download and attach css styles
-                    data.assets.css.forEach(function(item, i, arr) {
-                        $('<link/>', {
-                           rel: 'stylesheet',
-                           type: 'text/css',
-                           href: item
-                        }).appendTo('head');
-                    });
-
+                        //download and attach css styles
+                        data.assets.css.forEach(function(item, i, arr) {
+                            $('<link/>', {
+                               rel: 'stylesheet',
+                               type: 'text/css',
+                               href: item
+                            }).appendTo('head');
+                        });
+                    }
                 });
 
             }
